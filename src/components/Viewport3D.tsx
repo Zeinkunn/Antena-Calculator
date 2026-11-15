@@ -388,19 +388,16 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
         </div>
       </div>
 
-      {/* Bottom-Right Author Credit Pill */}
+      {/* Bottom-Right Author Credit (Minimal Text Only) */}
       <a
         href="https://github.com/Zeinkunn"
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-5 right-5 z-20 pointer-events-auto hidden lg:flex items-center gap-2 h-11 px-3.5 bg-[#0B101B]/80 hover:bg-[#0B101B]/95 backdrop-blur-2xl border border-white/10 hover:border-[#00E5FF]/40 rounded-2xl shadow-[0_14px_40px_rgba(0,0,0,0.65)] transition group whitespace-nowrap"
+        className="fixed bottom-5 right-5 z-20 pointer-events-auto hidden lg:flex items-center gap-1.5 text-xs text-[#64748B] hover:text-[#CBD5E1] transition group whitespace-nowrap"
         title="GitHub @Zeinkunn"
       >
-        <span className="w-2 h-2 rounded-full bg-[#10B981] shadow-[0_0_8px_#10B981]" />
-        <span className="text-xs text-[#94A3B8]">
-          {lang === 'id' ? 'Dibuat oleh' : 'Built by'}
-        </span>
-        <span className="text-xs font-display font-bold text-[#F8FAFC] group-hover:text-[#00E5FF] transition">
+        <span>{lang === 'id' ? 'Dibuat oleh' : 'Built by'}</span>
+        <span className="font-display font-semibold text-[#94A3B8] group-hover:text-[#00E5FF] transition">
           Zein (@Zeinkunn)
         </span>
       </a>
