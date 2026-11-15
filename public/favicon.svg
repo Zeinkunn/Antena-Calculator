@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#0B101B"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" stroke="#00E5FF" stroke-opacity="0.35" stroke-width="3"/>
+  <!-- Outer RF Signal Waves -->
+  <path d="M15.5 16.5C9.5 22.5 9.5 32.5 15.5 38.5" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M48.5 16.5C54.5 22.5 54.5 32.5 48.5 38.5" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+  <!-- Inner RF Signal Waves -->
+  <path d="M22 21.5C18.5 25 18.5 30 22 33.5" stroke="#10B981" stroke-width="4" stroke-linecap="round"/>
+  <path d="M42 21.5C45.5 25 45.5 30 42 33.5" stroke="#10B981" stroke-width="4" stroke-linecap="round"/>
+  <!-- Center Antenna Feed Node -->
+  <circle cx="32" cy="27.5" r="4.5" fill="#00E5FF"/>
+  <!-- Tower Mast & Struts -->
+  <path d="M32 32L23 52M32 32L41 52M26 45H38" stroke="#F8FAFC" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
