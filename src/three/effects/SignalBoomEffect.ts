@@ -6,7 +6,7 @@ import {
 } from '../../types/antenna';
 import { evaluateDirectionalPatternVec } from '../../engine/antennaCalculator';
 import { BuiltAntenna3D } from '../builders/antennaBuilders';
-import { createLabelSprite } from '../builders/dimensionHelper';
+import { createLabelSprite, createPointCallout } from '../builders/dimensionHelper';
 
 /**
  * Maps normalized pattern amplitude [0..1] to an RF Spectrum Heatmap color
@@ -109,8 +109,9 @@ export class SignalBoomEffectController {
     this.wavefrontRings = [];
     this.boomHalos = [];
 
-    // Max visual radius of the radiation pattern (scales softly with Gain in dBi)
-    const maxRadius = 2.7 + Math.min(2.6, Math.max(0, (calc.gainDbi - 2) * 0.11));
+    // Max visual radius of the 3D coverage dome (scales dynamically with Gain dBi & TX Power dBm)
+    const txBoost = Math.max(-0.45, Math.min(0.85, ((params.txPowerDbm ?? 20) - 20) * 0.045));
+    const maxRadius = 2.65 + Math.min(2.65, Math.max(0, (calc.gainDbi - 2) * 0.11 + txBoost));
 
     // =========================================================================
     // 1. 3D VOLUMETRIC RADIATION PATTERN LOBE (Heatmap Surface + Wireframe)
@@ -210,6 +211,164 @@ export class SignalBoomEffectController {
       new THREE.LineBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.75 })
     );
     this.lobeGroup.add(hContour, eContour);
+
+    // =========================================================================
+    // 1B. REAL COVERAGE RANGE RINGS & 3D DISTANCE CALLOUTS (km) ON THE 3D DOME
+    // =========================================================================
+    const maxKm = calc.linkBudget.maxCoverageRangeKm;
+    const strongKm = calc.linkBudget.strongCoverageRangeKm;
+    const secKm = calc.linkBudget.secondaryCoverageRangeKm;
+    const targetKm = params.linkDistanceKm || 12;
+
+    const formatKm = (km: number) =>
+      km >= 10 ? `${km.toFixed(1)} km` : `${km.toFixed(2)} km`;
+
+    // Ground Radar Range Rings in km (at y = -1.64) showing 50%, 70.7% (-3dB), and 100% Max Coverage
+    const ringFractions = [
+      { frac: 0.5, label: `${formatKm(maxKm * 0.5)} (50%)`, color: 0x00e5ff, hex: '#00E5FF' },
+      { frac: 0.707, label: `${formatKm(strongKm)} (-3dB)`, color: 0x10b981, hex: '#10B981' },
+      { frac: 1.0, label: `${formatKm(maxKm)} (Maks)`, color: 0xff3366, hex: '#FF3366' },
+    ];
+
+    ringFractions.forEach(({ frac, label, color, hex }, idx) => {
+      const rRing = maxRadius * frac;
+      const pts: THREE.Vector3[] = [];
+      const segs = 96;
+      for (let s = 0; s <= segs; s++) {
+        const a = (s / segs) * Math.PI * 2;
+        pts.push(new THREE.Vector3(Math.sin(a) * rRing, -1.64, Math.cos(a) * rRing));
+      }
+      const ringLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({
+          color,
+          transparent: true,
+          opacity: idx === 2 ? 0.55 : 0.35,
+        })
+      );
+      this.lobeGroup.add(ringLine);
+
+      // Place compact km ring marker along the diagonal radar axis
+      const angleRad = Math.PI * 0.22 + idx * 0.14;
+      const badge = createLabelSprite(label, undefined, hex, 0.52);
+      badge.position.set(
+        Math.sin(angleRad) * rRing,
+        -1.52,
+        Math.cos(angleRad) * rRing
+      );
+      this.lobeGroup.add(badge);
+    });
+
+    // Main Lobe Peak Coverage Callout on the 3D Dome Surface
+    if (built.isOmnidirectional) {
+      // Omnidirectional Dome: Peak Horizon Rim on +X and +Z
+      const hAmpX = evaluateDirectionalPatternVec(params.antennaType, params, 1, 0, 0);
+      const peakX = hAmpX * maxRadius;
+      const halfPowerAngle = ((calc.hpbwEDeg * 0.5) * Math.PI) / 180;
+      const hpY = Math.sin(halfPowerAngle);
+      const hpX = Math.cos(halfPowerAngle);
+      const hpAmp = evaluateDirectionalPatternVec(params.antennaType, params, hpX, hpY, 0);
+
+      this.lobeGroup.add(
+        createPointCallout(
+          new THREE.Vector3(peakX, 0, 0),
+          new THREE.Vector3(0.55, 0.48, 0),
+          `Jangkauan Maks: ${formatKm(maxKm)}`,
+          `Radius 360° • +${calc.gainDbi.toFixed(1)} dBi (EIRP +${calc.linkBudget.eirpDbm.toFixed(1)} dBm)`,
+          '#FF3366',
+          0.66
+        ),
+        createPointCallout(
+          new THREE.Vector3(hpX * hpAmp * maxRadius, hpY * hpAmp * maxRadius, 0),
+          new THREE.Vector3(0.48, 0.42, 0),
+          `Zona Kuat (-3dB): ${formatKm(strongKm)}`,
+          `Sinyal Stabil • Sudut Elevasi ${calc.hpbwEDeg.toFixed(0)}°`,
+          '#10B981',
+          0.62
+        )
+      );
+
+      // Target Link Distance Beacon on +Z axis
+      const targetRatio = Math.max(0.22, Math.min(1.12, targetKm / Math.max(0.1, maxKm)));
+      const targetZ = targetRatio * peakX;
+      const beaconMesh = new THREE.Mesh(
+        new THREE.TorusGeometry(0.14, 0.022, 12, 28),
+        new THREE.MeshBasicMaterial({ color: 0xffb300 })
+      );
+      beaconMesh.rotation.x = Math.PI / 2;
+      beaconMesh.position.set(0, 0, targetZ);
+      this.lobeGroup.add(beaconMesh);
+
+      this.lobeGroup.add(
+        createPointCallout(
+          new THREE.Vector3(0, 0, targetZ),
+          new THREE.Vector3(-0.45, 0.45, 0.25),
+          `Target Uji RX: ${formatKm(targetKm)}`,
+          `Signal ${calc.linkBudget.rxPowerDbm.toFixed(1)} dBm • SNR +${calc.linkBudget.snrMarginDb.toFixed(1)} dB`,
+          '#FFB300',
+          0.62
+        )
+      );
+    } else {
+      // Directional Dome: Peak Tip along +Z Boresight
+      const peakAmp = evaluateDirectionalPatternVec(params.antennaType, params, 0, 0, 1);
+      const peakZ = peakAmp * maxRadius;
+
+      // Half-power (-3dB) shoulder point on the 3D dome
+      const halfBeamRad = (Math.min(60, calc.hpbwHDeg * 0.5) * Math.PI) / 180;
+      const shX = Math.sin(halfBeamRad);
+      const shZ = Math.cos(halfBeamRad);
+      const shAmp = evaluateDirectionalPatternVec(params.antennaType, params, shX, 0, shZ);
+
+      // Back lobe point along -Z
+      const backAmp = evaluateDirectionalPatternVec(params.antennaType, params, 0, 0, -1);
+      const backZ = -backAmp * maxRadius;
+
+      // Target Link Distance Beacon along +Z Boresight
+      const targetRatio = Math.max(0.24, Math.min(1.12, targetKm / Math.max(0.1, maxKm)));
+      const targetZ = targetRatio * peakZ;
+      const beaconMesh = new THREE.Mesh(
+        new THREE.TorusGeometry(0.16, 0.024, 12, 28),
+        new THREE.MeshBasicMaterial({ color: 0xffb300 })
+      );
+      beaconMesh.position.set(0, 0, targetZ);
+      this.lobeGroup.add(beaconMesh);
+
+      this.lobeGroup.add(
+        createPointCallout(
+          new THREE.Vector3(0, 0, peakZ),
+          new THREE.Vector3(0.25, 0.58, 0.35),
+          `Jangkauan Maks: ${formatKm(maxKm)}`,
+          `Puncak Kubah +Z (+${calc.gainDbi.toFixed(1)} dBi • EIRP +${calc.linkBudget.eirpDbm.toFixed(1)} dBm)`,
+          '#FF3366',
+          0.68
+        ),
+        createPointCallout(
+          new THREE.Vector3(shX * shAmp * maxRadius, 0, shZ * shAmp * maxRadius),
+          new THREE.Vector3(0.55, 0.38, 0),
+          `Zona Kuat (-3dB): ${formatKm(strongKm)}`,
+          `Lebar Berkas ${calc.hpbwEDeg.toFixed(0)}° × ${calc.hpbwHDeg.toFixed(0)}°`,
+          '#10B981',
+          0.62
+        ),
+        createPointCallout(
+          new THREE.Vector3(0, 0, targetZ),
+          new THREE.Vector3(-0.55, -0.42, 0),
+          `Target Uji RX: ${formatKm(targetKm)}`,
+          `Signal ${calc.linkBudget.rxPowerDbm.toFixed(1)} dBm • SNR +${calc.linkBudget.snrMarginDb.toFixed(1)} dB`,
+          '#FFB300',
+          0.62
+        ),
+        createPointCallout(
+          new THREE.Vector3(0, 0, backZ),
+          new THREE.Vector3(-0.45, 0.42, -0.35),
+          `Sisi Belakang: ${formatKm(secKm)}`,
+          `Redaman F/B -${calc.frontToBackDb.toFixed(0)} dB`,
+          '#00E5FF',
+          0.56
+        )
+      );
+    }
 
     // Burst Shockwave Mesh (cloned from lobeGeo so shockwave matches exact antenna radiation shape!)
     const burstMat = new THREE.MeshBasicMaterial({

@@ -116,6 +116,12 @@ export interface LinkBudgetResult {
   thermalNoiseFloorDbm: number;
   snrMarginDb: number;
   linkQuality: 'excellent' | 'good' | 'marginal' | 'no-link';
+  /** Maximum real coverage range in km at the peak of the 3D radiation dome */
+  maxCoverageRangeKm: number;
+  /** Effective strong-signal (-3 dB HPBW) coverage range in km */
+  strongCoverageRangeKm: number;
+  /** Side / Back lobe (or 45° elevation) coverage range in km */
+  secondaryCoverageRangeKm: number;
 }
 
 export interface AntennaCalculationResult {

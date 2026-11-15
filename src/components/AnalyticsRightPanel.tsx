@@ -288,6 +288,22 @@ export const AnalyticsRightPanel: React.FC<AnalyticsRightPanelProps> = ({
                       </strong>
                     </span>
                   </div>
+
+                  {/* 3D Dome Real Coverage Range Readout (km) */}
+                  <div className="flex items-center justify-between pt-1.5 text-[11px] font-mono-num">
+                    <span className="text-[#94A3B8]">
+                      {lang === 'id' ? 'Kubah Maks:' : 'Max Dome:'}{' '}
+                      <strong className="text-[#FF3366]">
+                        {calc.linkBudget.maxCoverageRangeKm.toFixed(1)} km
+                      </strong>
+                    </span>
+                    <span className="text-[#94A3B8]">
+                      {lang === 'id' ? 'Zona -3dB:' : '-3dB Zone:'}{' '}
+                      <strong className="text-[#10B981]">
+                        {calc.linkBudget.strongCoverageRangeKm.toFixed(1)} km
+                      </strong>
+                    </span>
+                  </div>
                 </div>
 
                 {/* Distance & TX Power Sliders */}

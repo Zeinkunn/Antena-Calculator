@@ -1246,6 +1246,21 @@ export function calculateAntenna(params: AntennaParams): AntennaCalculationResul
   else if (snrMarginDb < 12) linkQuality = 'marginal';
   else if (snrMarginDb < 22) linkQuality = 'good';
 
+  // Real-world Line-of-Sight Coverage Range (km) at the peak of the 3D Radiation Dome
+  // Uses Friis / near-LOS propagation exponent (n = 2.68) with usable Rx threshold (-91 dBm)
+  const fspl1KmDb = 32.44 + 20 * Math.log10(fOpMHz);
+  const usableSensitivityDbm = -91.0;
+  const linkMarginAt1KmDb = eirpDbm + rxGainDbi - fspl1KmDb - usableSensitivityDbm;
+  const maxCoverageRangeKm = Math.max(
+    0.15,
+    Math.min(250, Math.pow(10, linkMarginAt1KmDb / 26.8))
+  );
+  const strongCoverageRangeKm = maxCoverageRangeKm * 0.707;
+  const secondaryCoverageRangeKm =
+    frontToBackDb > 0
+      ? maxCoverageRangeKm * Math.pow(10, -frontToBackDb / 26.8)
+      : maxCoverageRangeKm * 0.52;
+
   return {
     wavelengthMeters,
     effectiveWavelengthMeters,
@@ -1277,6 +1292,9 @@ export function calculateAntenna(params: AntennaParams): AntennaCalculationResul
       thermalNoiseFloorDbm,
       snrMarginDb,
       linkQuality,
+      maxCoverageRangeKm,
+      strongCoverageRangeKm,
+      secondaryCoverageRangeKm,
     },
   };
 }

@@ -309,7 +309,10 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5 shrink-0" />
-              <span>{lang === 'id' ? 'Kubah 3D' : '3D Lobe'}</span>
+              <span>
+                {lang === 'id' ? 'Kubah 3D' : '3D Dome'} (
+                {calc.linkBudget.maxCoverageRangeKm.toFixed(1)} km)
+              </span>
             </button>
 
             <button

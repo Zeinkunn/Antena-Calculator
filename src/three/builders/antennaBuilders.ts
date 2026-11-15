@@ -1559,18 +1559,6 @@ export function buildAntenna3D(
     }
   }
 
-  // Boresight / Propagation Direction Arrow indicator for directional antennas
-  if (!isOmnidirectional) {
-    const arrowSprite = createLabelSprite(
-      'BORESIGHT +Z →',
-      `Peak +${calc.gainDbi.toFixed(1)} dBi`,
-      '#10B981',
-      0.65
-    );
-    arrowSprite.position.set(0, 1.55, 2.35);
-    dimensionsGroup.add(arrowSprite);
-  }
-
   return {
     meshGroup,
     dimensionsGroup,
