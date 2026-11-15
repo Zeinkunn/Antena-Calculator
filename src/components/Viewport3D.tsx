@@ -86,7 +86,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
       0.1,
       250
     );
-    camera.position.set(8.8, 5.2, 9.8);
+    camera.position.set(11.5, 6.6, 12.8);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
@@ -231,16 +231,16 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     ctrl.target.set(0, 0, 0);
     switch (preset) {
       case 'iso':
-        cam.position.set(8.8, 5.2, 9.8);
+        cam.position.set(11.5, 6.6, 12.8);
         break;
       case 'top':
-        cam.position.set(0.01, 14.5, 0.01);
+        cam.position.set(0.01, 18.5, 0.01);
         break;
       case 'side':
-        cam.position.set(13.5, 0.6, 0);
+        cam.position.set(16.5, 0.8, 0);
         break;
       case 'front':
-        cam.position.set(0, 0.8, 13.0);
+        cam.position.set(0, 1.0, 16.0);
         break;
     }
     ctrl.update();
