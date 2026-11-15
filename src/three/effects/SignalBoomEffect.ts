@@ -109,9 +109,9 @@ export class SignalBoomEffectController {
     this.wavefrontRings = [];
     this.boomHalos = [];
 
-    // Max visual radius of the 3D coverage dome (scales dynamically with Gain dBi & TX Power dBm)
-    const txBoost = Math.max(-0.45, Math.min(0.85, ((params.txPowerDbm ?? 20) - 20) * 0.045));
-    const maxRadius = 2.65 + Math.min(2.65, Math.max(0, (calc.gainDbi - 2) * 0.11 + txBoost));
+    // Max visual radius of the 3D coverage dome — significantly larger than the physical antenna (5.5 to 10.2 units)
+    const txBoost = Math.max(-0.6, Math.min(1.4, ((params.txPowerDbm ?? 20) - 20) * 0.075));
+    const maxRadius = 5.4 + Math.min(4.8, Math.max(0, (calc.gainDbi - 2) * 0.24 + txBoost));
 
     // =========================================================================
     // 1. 3D VOLUMETRIC RADIATION PATTERN LOBE (Heatmap Surface + Wireframe)
@@ -250,10 +250,10 @@ export class SignalBoomEffectController {
 
       // Place compact km ring marker along the diagonal radar axis
       const angleRad = Math.PI * 0.22 + idx * 0.14;
-      const badge = createLabelSprite(label, undefined, hex, 0.52);
+      const badge = createLabelSprite(label, undefined, hex, 0.72);
       badge.position.set(
         Math.sin(angleRad) * rRing,
-        -1.52,
+        -1.48,
         Math.cos(angleRad) * rRing
       );
       this.lobeGroup.add(badge);
@@ -272,27 +272,27 @@ export class SignalBoomEffectController {
       this.lobeGroup.add(
         createPointCallout(
           new THREE.Vector3(peakX, 0, 0),
-          new THREE.Vector3(0.55, 0.48, 0),
+          new THREE.Vector3(0.65, 0.58, 0),
           `Jangkauan Maks: ${formatKm(maxKm)}`,
           `Radius 360° • +${calc.gainDbi.toFixed(1)} dBi (EIRP +${calc.linkBudget.eirpDbm.toFixed(1)} dBm)`,
           '#FF3366',
-          0.66
+          0.86
         ),
         createPointCallout(
           new THREE.Vector3(hpX * hpAmp * maxRadius, hpY * hpAmp * maxRadius, 0),
-          new THREE.Vector3(0.48, 0.42, 0),
+          new THREE.Vector3(0.58, 0.52, 0),
           `Zona Kuat (-3dB): ${formatKm(strongKm)}`,
           `Sinyal Stabil • Sudut Elevasi ${calc.hpbwEDeg.toFixed(0)}°`,
           '#10B981',
-          0.62
+          0.8
         )
       );
 
       // Target Link Distance Beacon on +Z axis
-      const targetRatio = Math.max(0.22, Math.min(1.12, targetKm / Math.max(0.1, maxKm)));
+      const targetRatio = Math.max(0.22, Math.min(1.08, targetKm / Math.max(0.1, maxKm)));
       const targetZ = targetRatio * peakX;
       const beaconMesh = new THREE.Mesh(
-        new THREE.TorusGeometry(0.14, 0.022, 12, 28),
+        new THREE.TorusGeometry(0.22, 0.032, 12, 28),
         new THREE.MeshBasicMaterial({ color: 0xffb300 })
       );
       beaconMesh.rotation.x = Math.PI / 2;
@@ -302,11 +302,11 @@ export class SignalBoomEffectController {
       this.lobeGroup.add(
         createPointCallout(
           new THREE.Vector3(0, 0, targetZ),
-          new THREE.Vector3(-0.45, 0.45, 0.25),
+          new THREE.Vector3(-0.55, 0.55, 0.35),
           `Target Uji RX: ${formatKm(targetKm)}`,
           `Signal ${calc.linkBudget.rxPowerDbm.toFixed(1)} dBm • SNR +${calc.linkBudget.snrMarginDb.toFixed(1)} dB`,
           '#FFB300',
-          0.62
+          0.8
         )
       );
     } else {
@@ -325,10 +325,10 @@ export class SignalBoomEffectController {
       const backZ = -backAmp * maxRadius;
 
       // Target Link Distance Beacon along +Z Boresight
-      const targetRatio = Math.max(0.24, Math.min(1.12, targetKm / Math.max(0.1, maxKm)));
+      const targetRatio = Math.max(0.24, Math.min(1.08, targetKm / Math.max(0.1, maxKm)));
       const targetZ = targetRatio * peakZ;
       const beaconMesh = new THREE.Mesh(
-        new THREE.TorusGeometry(0.16, 0.024, 12, 28),
+        new THREE.TorusGeometry(0.24, 0.034, 12, 28),
         new THREE.MeshBasicMaterial({ color: 0xffb300 })
       );
       beaconMesh.position.set(0, 0, targetZ);
@@ -337,35 +337,35 @@ export class SignalBoomEffectController {
       this.lobeGroup.add(
         createPointCallout(
           new THREE.Vector3(0, 0, peakZ),
-          new THREE.Vector3(0.25, 0.58, 0.35),
+          new THREE.Vector3(0.35, 0.72, 0.45),
           `Jangkauan Maks: ${formatKm(maxKm)}`,
           `Puncak Kubah +Z (+${calc.gainDbi.toFixed(1)} dBi • EIRP +${calc.linkBudget.eirpDbm.toFixed(1)} dBm)`,
           '#FF3366',
-          0.68
+          0.88
         ),
         createPointCallout(
           new THREE.Vector3(shX * shAmp * maxRadius, 0, shZ * shAmp * maxRadius),
-          new THREE.Vector3(0.55, 0.38, 0),
+          new THREE.Vector3(0.68, 0.48, 0),
           `Zona Kuat (-3dB): ${formatKm(strongKm)}`,
           `Lebar Berkas ${calc.hpbwEDeg.toFixed(0)}° × ${calc.hpbwHDeg.toFixed(0)}°`,
           '#10B981',
-          0.62
+          0.8
         ),
         createPointCallout(
           new THREE.Vector3(0, 0, targetZ),
-          new THREE.Vector3(-0.55, -0.42, 0),
+          new THREE.Vector3(-0.68, -0.52, 0),
           `Target Uji RX: ${formatKm(targetKm)}`,
           `Signal ${calc.linkBudget.rxPowerDbm.toFixed(1)} dBm • SNR +${calc.linkBudget.snrMarginDb.toFixed(1)} dB`,
           '#FFB300',
-          0.62
+          0.8
         ),
         createPointCallout(
           new THREE.Vector3(0, 0, backZ),
-          new THREE.Vector3(-0.45, 0.42, -0.35),
+          new THREE.Vector3(-0.55, 0.52, -0.45),
           `Sisi Belakang: ${formatKm(secKm)}`,
           `Redaman F/B -${calc.frontToBackDb.toFixed(0)} dB`,
           '#00E5FF',
-          0.56
+          0.74
         )
       );
     }
@@ -659,8 +659,8 @@ export class SignalBoomEffectController {
       const isCircular = this.currentParams.antennaType === 'helical';
       const handedSign = this.currentParams.helicalHandedness === 'LHCP' ? -1 : 1;
       const startZ = this.currentBuilt.isOmnidirectional ? 0.25 : 0.4;
-      const waveLenZ = 4.2;
-      const amp = 0.52 * powerScale;
+      const waveLenZ = 7.6;
+      const amp = 0.68 * powerScale;
 
       for (let i = 0; i < this.WAVE_SAMPLES; i++) {
         const frac = i / (this.WAVE_SAMPLES - 1);

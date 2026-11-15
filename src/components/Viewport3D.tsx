@@ -77,16 +77,16 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#060911');
-    scene.fog = new THREE.FogExp2('#060911', 0.036);
+    scene.fog = new THREE.FogExp2('#060911', 0.012);
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(
       42,
       container.clientWidth / Math.max(1, container.clientHeight),
       0.1,
-      140
+      250
     );
-    camera.position.set(6.2, 3.6, 6.8);
+    camera.position.set(8.8, 5.2, 9.8);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
@@ -102,7 +102,7 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
-    controls.maxDistance = 26;
+    controls.maxDistance = 65;
     controls.minDistance = 1.6;
     controls.autoRotate = visConfigRef.current.autoRotateCamera;
     controls.autoRotateSpeed = 0.9;
@@ -112,39 +112,44 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     scene.add(ambientLight);
 
     const keyLight = new THREE.DirectionalLight(0xffffff, 2.3);
-    keyLight.position.set(8, 12, 10);
+    keyLight.position.set(12, 18, 14);
     scene.add(keyLight);
 
-    const rimCyanLight = new THREE.PointLight(0x00e5ff, 3.4, 20);
-    rimCyanLight.position.set(-6, 4, 6);
+    const rimCyanLight = new THREE.PointLight(0x00e5ff, 3.4, 35);
+    rimCyanLight.position.set(-8, 6, 8);
     scene.add(rimCyanLight);
 
-    const warmFillLight = new THREE.PointLight(0xffb300, 2.2, 20);
-    warmFillLight.position.set(6, -3, -5);
+    const warmFillLight = new THREE.PointLight(0xffb300, 2.2, 35);
+    warmFillLight.position.set(8, -3, -8);
     scene.add(warmFillLight);
 
     const polarFloor = new THREE.Group();
     polarFloor.position.set(0, -1.75, 0);
 
+    // Large realistic radar polar grid + wide engineering ground grid
     const polarGrid = new THREE.PolarGridHelper(
-      8.0,
+      24.0,
+      24,
       16,
-      8,
-      64,
+      96,
       0x1e293b,
       0x0f172a
     );
     polarFloor.add(polarGrid);
 
-    const zAxisPts = [new THREE.Vector3(0, 0.01, -8.0), new THREE.Vector3(0, 0.01, 8.0)];
+    const rectGrid = new THREE.GridHelper(48, 48, 0x1e293b, 0x09101d);
+    rectGrid.position.y = -0.02;
+    polarFloor.add(rectGrid);
+
+    const zAxisPts = [new THREE.Vector3(0, 0.01, -24.0), new THREE.Vector3(0, 0.01, 24.0)];
     const zAxisLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(zAxisPts),
-      new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.45 })
+      new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.5 })
     );
-    const xAxisPts = [new THREE.Vector3(-8.0, 0.01, 0), new THREE.Vector3(8.0, 0.01, 0)];
+    const xAxisPts = [new THREE.Vector3(-24.0, 0.01, 0), new THREE.Vector3(24.0, 0.01, 0)];
     const xAxisLine = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(xAxisPts),
-      new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.4 })
+      new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.45 })
     );
     polarFloor.add(zAxisLine, xAxisLine);
     scene.add(polarFloor);
@@ -226,16 +231,16 @@ export const Viewport3D: React.FC<Viewport3DProps> = ({
     ctrl.target.set(0, 0, 0);
     switch (preset) {
       case 'iso':
-        cam.position.set(6.2, 3.6, 6.8);
+        cam.position.set(8.8, 5.2, 9.8);
         break;
       case 'top':
-        cam.position.set(0.01, 9.5, 0.01);
+        cam.position.set(0.01, 14.5, 0.01);
         break;
       case 'side':
-        cam.position.set(9.2, 0.4, 0);
+        cam.position.set(13.5, 0.6, 0);
         break;
       case 'front':
-        cam.position.set(0, 0.6, 8.8);
+        cam.position.set(0, 0.8, 13.0);
         break;
     }
     ctrl.update();
