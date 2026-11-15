@@ -3,6 +3,8 @@ export type Language = 'id' | 'en';
 export type AntennaType =
   | 'dipole'
   | 'groundplane'
+  | 'jpole'
+  | 'fiberglass'
   | 'yagi'
   | 'dish'
   | 'helical'
@@ -43,6 +45,14 @@ export interface AntennaParams {
   // Ground Plane specific
   /** Radial droop angle in degrees (0 = horizontal, 45 = standard 50 ohm) */
   gpRadialAngleDeg: number;
+
+  // J-Pole specific
+  /** Parallel center-to-center spacing of the 1/4-wave matching stub in wavelengths (0.015 to 0.060) */
+  jpoleStubSpacingLambda: number;
+
+  // Collinear Fiberglass Radome specific
+  /** Number of stacked half-wave collinear radiator sections inside the fiberglass radome (2 to 12) */
+  collinearSectionCount: number;
 
   // Parabolic Dish specific
   /** Dish diameter in wavelengths or meters (we store diameter in meters, auto-scaled or adjustable) */

@@ -79,6 +79,31 @@ export function evaluateDirectionalPatternVec(
       return Math.max(0.05, Math.min(1, elevationWeight));
     }
 
+    case 'jpole': {
+      // End-fed vertical half-wave with 1/4-wave parallel stub -> low-angle omnidirectional doughnut with slight asymmetry along X
+      const sinTheta = Math.sqrt(Math.max(0.0001, 1 - y * y));
+      const dipoleFactor = Math.abs(Math.cos((Math.PI / 2) * y)) / sinTheta;
+      const stubBias = 1 + 0.08 * x; // slight pattern skew toward main radiator side
+      const val = Math.pow(dipoleFactor, 1.25) * stubBias;
+      return Math.max(0.04, Math.min(1, val));
+    }
+
+    case 'fiberglass': {
+      // Collinear vertical phased array along Y axis inside Fiberglass Radome:
+      // Stacking N_sec in-phase 1/2-wave sections compresses vertical beam toward horizon (y = 0)
+      const nSec = Math.max(2, Math.min(12, Math.round(params.collinearSectionCount || 4)));
+      const sinTheta = Math.sqrt(Math.max(0.0001, 1 - y * y));
+      const elemPattern = Math.abs(Math.cos((Math.PI / 2) * y)) / sinTheta;
+      // Array factor of N collinear elements spaced ~0.65λ apart along Y
+      const psi = Math.PI * 0.65 * y;
+      let arrayFactor = 1.0;
+      if (Math.abs(psi) > 0.001) {
+        arrayFactor = Math.abs(Math.sin(nSec * psi) / (nSec * Math.sin(psi)));
+      }
+      const combined = elemPattern * (0.88 * Math.pow(arrayFactor, 0.9) + 0.12 * Math.pow(sinTheta, nSec));
+      return Math.max(0.03, Math.min(1, combined));
+    }
+
     case 'yagi': {
       // Boom along +Z axis. Elements parallel to X axis (Horizontal polarization).
       // cosAlpha is cosine of angle from +Z forward boom axis
@@ -364,6 +389,196 @@ export function calculateAntenna(params: AntennaParams): AntennaCalculationResul
           en: 'Drooping the four radials by 45° transitions the monopole toward an asymmetric dipole, raising feedpoint impedance to 50 Ω.',
         },
       });
+      break;
+    }
+
+    case 'jpole': {
+      const stubGapLambda = Math.max(0.015, Math.min(0.06, params.jpoleStubSpacingLambda || 0.03));
+      const vfScale = (vf / 0.95) * endEffectK;
+
+      const upperRadiatorMeters = 0.474 * wavelengthMeters * vfScale; // 1/2 wave radiating section
+      const matchingStubMeters = 0.238 * wavelengthMeters * vfScale; // 1/4 wave parallel matching section
+      const totalLongRodMeters = upperRadiatorMeters + matchingStubMeters; // 3/4 wave total long leg
+      const stubGapMeters = stubGapLambda * wavelengthMeters; // Center-to-center spacing
+      const feedTapMeters = (0.031 + stubGapLambda * 0.12) * wavelengthMeters * vfScale; // 50-ohm tap point above shorting bar
+
+      gainDbi = 2.85;
+      hpbwEDeg = 58.0;
+      hpbwHDeg = 360.0;
+      frontToBackDb = 0.0;
+      impedanceOhms = 50.0;
+      bandwidthPercent = 8.5;
+      totalLengthMeters = totalLongRodMeters;
+      polarization = { id: 'Linear Vertikal', en: 'Vertical Linear' };
+      patternType = { id: 'Omnidirectional Horizon Rendah (360°)', en: 'Low-Angle 360° Omnidirectional' };
+
+      cutSheet.push(
+        {
+          key: 'jpole-long',
+          name: { id: 'Batang Utama Panjang (Radiator + Stub 3/4 λ)', en: 'Main Long Element (Radiator + Stub 3/4 λ)' },
+          symbol: 'L_long',
+          valueMeters: totalLongRodMeters,
+          lambdaFraction: `${(totalLongRodMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: 'Panjang total pipa vertikal utama dari dasar hubungan pendek hingga ujung atas',
+            en: 'Total length of the long vertical pipe from bottom shorting bar to top tip',
+          },
+          highlightColor: '#00E5FF',
+        },
+        {
+          key: 'jpole-rad',
+          name: { id: 'Bagian Radiator Atas (1/2 λ Aktif)', en: 'Upper Radiating Section (1/2 λ Active)' },
+          symbol: 'L_rad',
+          valueMeters: upperRadiatorMeters,
+          lambdaFraction: `${(upperRadiatorMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: 'Bagian atas batang utama di atas ujung stub yang memancarkan gelombang ke ruang bebas',
+            en: 'Upper half-wave portion above the matching stub that radiates into free space',
+          },
+          highlightColor: '#10B981',
+        },
+        {
+          key: 'jpole-stub',
+          name: { id: 'Batang Pendek Penyesuai Impedansi (J-Stub 1/4 λ)', en: 'Short Matching Stub Leg (1/4 λ)' },
+          symbol: 'L_stub',
+          valueMeters: matchingStubMeters,
+          lambdaFraction: `${(matchingStubMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: 'Pipa pendek sejajar di samping bawah untuk transformasi impedansi ke 2500 Ω ujung radiator',
+            en: 'Parallel quarter-wave matching arm transforming 50 Ω coax to the high-Z end of the radiator',
+          },
+          highlightColor: '#FFB300',
+        },
+        {
+          key: 'jpole-gap',
+          name: { id: 'Jarak Celah Antar Batang Paralel (Center-to-Center)', en: 'Parallel Stub Center-to-Center Spacing' },
+          symbol: 'S_gap',
+          valueMeters: stubGapMeters,
+          lambdaFraction: `${stubGapLambda.toFixed(3)} λ`,
+          notes: {
+            id: 'Lebar bagian bawah huruf J dari titik tengah pipa panjang ke titik tengah pipa pendek',
+            en: 'Horizontal center-to-center distance between the long radiator pipe and short stub pipe',
+          },
+          highlightColor: '#A855F7',
+        },
+        {
+          key: 'jpole-tap',
+          name: { id: 'Tinggi Titik Tap Koaksial 50 Ω dari Dasar', en: '50 Ω Coaxial Feed Tap Height from Bottom' },
+          symbol: 'H_tap',
+          valueMeters: feedTapMeters,
+          lambdaFraction: `${(feedTapMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: 'Inti koaksial ke batang panjang & serabut ground ke batang pendek (geser ±3 mm untuk SWR 1.0)',
+            en: 'Coax center conductor to long leg, braid to short stub leg (slide ±3 mm for 1:1 SWR)',
+          },
+          highlightColor: '#FF3366',
+        }
+      );
+
+      formulas.push(
+        {
+          title: { id: 'Dimensi Standar J-Pole (3/4 λ & 1/4 λ Stub)', en: 'J-Pole Quarter-Wave Stub Matching' },
+          equation: 'L_long = 0.712 × λ × VF   |   L_stub = 0.238 × λ × VF   |   H_tap ≈ 0.034 × λ',
+          explanation: {
+            id: 'Saluran paralel λ/4 bertindak sebagai transformator impedansi resonansi yang mengubah titik hubung singkat (0 Ω di dasar) menjadi impedansi tinggi di puncak stub.',
+            en: 'The shorted λ/4 parallel transmission stub transforms 0 Ω at the bottom shorting bar into a high-impedance voltage feed at the base of the λ/2 radiator.',
+          },
+        }
+      );
+      break;
+    }
+
+    case 'fiberglass': {
+      const nSec = Math.max(2, Math.min(12, Math.round(params.collinearSectionCount || 4)));
+      const vfScale = vf / 0.95;
+
+      const baseFeedSectionMeters = 0.238 * wavelengthMeters * vfScale; // Bottom 1/4λ driven section
+      const collinearSectionMeters = 0.465 * wavelengthMeters * vfScale; // Each stacked 1/2λ radiator section
+      const phasingCoilHeightMeters = 0.085 * wavelengthMeters * vfScale; // Physical axial height of 1/4λ helical phasing coil
+      const phasingWireLenMeters = 0.242 * wavelengthMeters * vfScale; // Unwound wire length of each phasing coil
+      const radomeDiameterMeters = Math.max(0.02, Math.min(0.065, wavelengthMeters * 0.055));
+
+      const totalInternalMeters =
+        baseFeedSectionMeters +
+        nSec * collinearSectionMeters +
+        nSec * phasingCoilHeightMeters;
+      const totalRadomeMeters = totalInternalMeters + 0.12 * wavelengthMeters; // Include brass base ferrule + top cap
+
+      // Gain scales with number of collinear in-phase sections
+      gainDbi = 3.2 + 10 * Math.log10(nSec * 1.38);
+      hpbwEDeg = Math.max(7.5, 68 / Math.pow(nSec, 0.86));
+      hpbwHDeg = 360.0;
+      frontToBackDb = 0.0;
+      impedanceOhms = 50.0;
+      bandwidthPercent = Math.max(3.5, 10.5 - nSec * 0.55);
+      totalLengthMeters = totalRadomeMeters;
+      polarization = { id: 'Linear Vertikal', en: 'Vertical Linear' };
+      patternType = {
+        id: `Omnidirectional High-Gain (${nSec} Seksi Collinear)`,
+        en: `High-Gain Omnidirectional (${nSec}-Section Collinear)`,
+      };
+
+      cutSheet.push(
+        {
+          key: 'fg-radome',
+          name: { id: 'Panjang Total Selongsong Fiberglass (FRP Radome)', en: 'Total Fiberglass Radome Tube Length' },
+          symbol: 'L_radome',
+          valueMeters: totalRadomeMeters,
+          lambdaFraction: `${(totalRadomeMeters / wavelengthMeters).toFixed(2)} λ`,
+          notes: {
+            id: `Diameter luar pipa Fiberglass Ø ${(radomeDiameterMeters * 1000).toFixed(0)} mm termasuk selongsong logam dasar (Base Ferrule)`,
+            en: `Outer FRP tube diameter Ø ${(radomeDiameterMeters * 1000).toFixed(0)} mm including chromed brass mounting ferrule`,
+          },
+          highlightColor: '#00E5FF',
+        },
+        {
+          key: 'fg-sec',
+          name: { id: `Elemen Radiator Tembaga Collinear (${nSec}× Seksi λ/2)`, en: `Stacked Collinear Copper Radiators (${nSec}× λ/2 Sections)` },
+          symbol: 'L_sec',
+          valueMeters: collinearSectionMeters,
+          lambdaFraction: `${(collinearSectionMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: `Potong ${nSec} batang pipa kuningan/tembaga identik dan susun vertikal di dalam tabung fiberglass`,
+            en: `Cut ${nSec} identical brass/copper radiator sections stacked vertically along the center axis`,
+          },
+          highlightColor: '#10B981',
+        },
+        {
+          key: 'fg-coil-h',
+          name: { id: `Tinggi Kumparan Pembalik Fase (${nSec}× Phasing Coil)`, en: `Inter-Section Phasing Coil Axial Span (${nSec}× Coils)` },
+          symbol: 'H_coil',
+          valueMeters: phasingCoilHeightMeters,
+          lambdaFraction: `${(phasingCoilHeightMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: `Panjang kawat tiap kumparan sebelum digulung = ${formatCompactLength(phasingWireLenMeters)} (0.242 λ)`,
+            en: `Unwound wire length per coil = ${formatCompactLength(phasingWireLenMeters)} (0.242 λ phase delay)`,
+          },
+          highlightColor: '#FFB300',
+        },
+        {
+          key: 'fg-base',
+          name: { id: 'Elemen Umpan Dasar (Bottom Quarter-Wave Feed)', en: 'Bottom Quarter-Wave Feed Section (λ/4)' },
+          symbol: 'L_base',
+          valueMeters: baseFeedSectionMeters,
+          lambdaFraction: `${(baseFeedSectionMeters / wavelengthMeters).toFixed(3)} λ`,
+          notes: {
+            id: 'Terhubung langsung ke pin tengah konektor N-Female di dasar ferrule logam',
+            en: 'Connected to the N-Female base connector center pin inside the lower metallic sleeve',
+          },
+          highlightColor: '#FF3366',
+        }
+      );
+
+      formulas.push(
+        {
+          title: { id: 'Penguatan Susunan Collinear Vertikal (Phased Array)', en: 'Collinear Phased Array Gain & Beam Compression' },
+          equation: 'G(dBi) ≈ 3.2 + 10 × log10(1.38 × N_sections)   |   HPBW_E ≈ 68° / N^0.86',
+          explanation: {
+            id: 'Setiap penggandaan jumlah seksi radiator λ/2 yang sefase di dalam pipa fiberglass memampatkan sudut vertikal (E-plane) menjadi setengahnya dan menaikkan gain sekitar +2.5 hingga +3.0 dB.',
+            en: 'Doubling the number of in-phase λ/2 radiator sections inside the fiberglass radome halves the vertical beamwidth and adds ~2.8 dB of omnidirectional horizon gain.',
+          },
+        }
+      );
       break;
     }
 

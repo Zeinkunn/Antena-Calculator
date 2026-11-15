@@ -30,6 +30,8 @@ const ANTENNA_ORDER: AntennaType[] = [
   'yagi',
   'dipole',
   'groundplane',
+  'jpole',
+  'fiberglass',
   'dish',
   'helical',
   'patch',

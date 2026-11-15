@@ -338,6 +338,390 @@ export function buildAntenna3D(
       break;
     }
 
+    case 'jpole': {
+      isOmnidirectional = true;
+      const longMeters = calc.cutSheet[0]?.valueMeters || 0.712 * lambdaM;
+      const radMeters = calc.cutSheet[1]?.valueMeters || 0.474 * lambdaM;
+      const stubMeters = calc.cutSheet[2]?.valueMeters || 0.238 * lambdaM;
+      const gapMeters = calc.cutSheet[3]?.valueMeters || 0.03 * lambdaM;
+      const tapMeters = calc.cutSheet[4]?.valueMeters || 0.034 * lambdaM;
+
+      const totalSceneH = 3.35;
+      const scaleToScene = totalSceneH / longMeters;
+      const stubSceneH = stubMeters * scaleToScene;
+      const radSceneH = radMeters * scaleToScene;
+      // Exaggerate horizontal gap slightly in 3D scene so the J-stub & tap bridge are clearly visible
+      const gapScene = Math.max(0.28, Math.min(0.56, (gapMeters / lambdaM) * 8.5));
+      const tapSceneH = Math.max(0.2, tapMeters * scaleToScene * 1.35);
+
+      const yBottom = -totalSceneH * 0.44;
+      const yStubTop = yBottom + stubSceneH;
+      const yLongTop = yBottom + totalSceneH;
+      const xLong = gapScene / 2;
+      const xStub = -gapScene / 2;
+      const pipeR = 0.042;
+
+      feedPoint = new THREE.Vector3(0, yBottom + tapSceneH, 0);
+
+      // 1. Long Vertical Copper Pipe (3/4 λ total: bottom 1/4 λ stub + upper 1/2 λ radiator)
+      const longGeo = new THREE.CylinderGeometry(pipeR, pipeR, totalSceneH, 24);
+      const longMesh = new THREE.Mesh(longGeo, mats.copper);
+      longMesh.position.set(xLong, yBottom + totalSceneH / 2, 0);
+      meshGroup.add(longMesh);
+
+      // Top brass cap on main radiator
+      const topCap = new THREE.Mesh(
+        new THREE.SphereGeometry(pipeR * 1.25, 16, 16),
+        mats.brightBrass
+      );
+      topCap.position.set(xLong, yLongTop, 0);
+      meshGroup.add(topCap);
+
+      // 2. Short Parallel Matching Stub Pipe (1/4 λ)
+      const stubGeo = new THREE.CylinderGeometry(pipeR, pipeR, stubSceneH, 24);
+      const stubMesh = new THREE.Mesh(stubGeo, mats.brightBrass);
+      stubMesh.position.set(xStub, yBottom + stubSceneH / 2, 0);
+      meshGroup.add(stubMesh);
+
+      const stubCap = new THREE.Mesh(
+        new THREE.SphereGeometry(pipeR * 1.25, 16, 16),
+        mats.brightBrass
+      );
+      stubCap.position.set(xStub, yStubTop, 0);
+      meshGroup.add(stubCap);
+
+      // 3. Bottom Shorting Bar / Copper Tee-Elbow Bridge
+      const shortBarGeo = new THREE.BoxGeometry(gapScene + pipeR * 2.8, pipeR * 2.4, pipeR * 2.4);
+      const shortBarMesh = new THREE.Mesh(shortBarGeo, mats.copper);
+      shortBarMesh.position.set(0, yBottom, 0);
+      meshGroup.add(shortBarMesh);
+
+      // Upper insulator spacer between stub and main pipe (Delrin stabilizer)
+      const spacerGeo = new THREE.BoxGeometry(gapScene, 0.045, 0.055);
+      const spacerMesh = new THREE.Mesh(spacerGeo, mats.insulatorDelrin);
+      spacerMesh.position.set(0, yStubTop - 0.08, 0);
+      meshGroup.add(spacerMesh);
+
+      // 4. 50-Ohm Adjustable Feed Tap Clamps & Glowing Excitation Bridge
+      const tapY = yBottom + tapSceneH;
+      const clampGeo = new THREE.CylinderGeometry(pipeR * 1.45, pipeR * 1.45, 0.08, 20);
+      const clampLong = new THREE.Mesh(clampGeo, mats.drivenGlow);
+      clampLong.position.set(xLong, tapY, 0);
+      const clampStub = new THREE.Mesh(clampGeo, mats.drivenGlow);
+      clampStub.position.set(xStub, tapY, 0);
+      meshGroup.add(clampLong, clampStub);
+
+      const tapBridge = new THREE.Mesh(
+        new THREE.BoxGeometry(gapScene, 0.035, 0.045),
+        mats.insulatorDelrin
+      );
+      tapBridge.position.set(0, tapY, 0.05);
+      meshGroup.add(tapBridge);
+
+      const feedRing = new THREE.Mesh(
+        new THREE.TorusGeometry(gapScene * 0.62, 0.02, 12, 32),
+        mats.drivenGlow
+      );
+      feedRing.position.set(0, tapY, 0);
+      meshGroup.add(feedRing);
+
+      // Coaxial cable + 4-turn Choke Balun below feed tap
+      for (let c = 0; c < 4; c++) {
+        const chokeTurn = new THREE.Mesh(
+          new THREE.TorusGeometry(0.11, 0.022, 10, 24),
+          mats.coaxJacket
+        );
+        chokeTurn.position.set(xLong + 0.14, tapY - 0.16 - c * 0.045, 0.08);
+        meshGroup.add(chokeTurn);
+      }
+
+      // 5. Lower Metallic Support Mast bolted below DC-grounded shorting bar
+      const mastGeo = new THREE.CylinderGeometry(0.052, 0.052, 1.15, 18);
+      const mastMesh = new THREE.Mesh(mastGeo, mats.darkAnodized);
+      mastMesh.position.set(xLong, yBottom - 0.58, 0);
+      meshGroup.add(mastMesh);
+
+      boomNodes.push(
+        {
+          position: new THREE.Vector3(xLong, yStubTop + radSceneH * 0.35, 0),
+          width: radSceneH,
+          phaseDelay: 0,
+          role: 'driven',
+        },
+        {
+          position: new THREE.Vector3(0, tapY, 0),
+          width: stubSceneH,
+          phaseDelay: 0.15,
+          role: 'director',
+        }
+      );
+
+      // 3D CAD Dimension Callouts for J-Pole
+      dimensionsGroup.add(
+        createDimensionCallout(
+          new THREE.Vector3(xLong, yBottom, 0),
+          new THREE.Vector3(xLong, yLongTop, 0),
+          new THREE.Vector3(0.75, 0, 0),
+          `L_long (3/4λ) = ${formatCompactLength(longMeters)}`,
+          `${(longMeters / lambdaM).toFixed(3)} λ Total Batang Utama`,
+          '#00E5FF',
+          0.66
+        ),
+        createDimensionCallout(
+          new THREE.Vector3(xLong, yStubTop, 0),
+          new THREE.Vector3(xLong, yLongTop, 0),
+          new THREE.Vector3(0.36, 0, 0),
+          `L_rad (1/2λ) = ${formatCompactLength(radMeters)}`,
+          `${(radMeters / lambdaM).toFixed(3)} λ Radiator Aktif`,
+          '#10B981',
+          0.62
+        ),
+        createDimensionCallout(
+          new THREE.Vector3(xStub, yBottom, 0),
+          new THREE.Vector3(xStub, yStubTop, 0),
+          new THREE.Vector3(-0.62, 0, 0),
+          `L_stub (1/4λ) = ${formatCompactLength(stubMeters)}`,
+          `${(stubMeters / lambdaM).toFixed(3)} λ Matching Stub`,
+          '#FFB300',
+          0.64
+        ),
+        createDimensionCallout(
+          new THREE.Vector3(xStub, yStubTop, 0),
+          new THREE.Vector3(xLong, yStubTop, 0),
+          new THREE.Vector3(0, 0.32, 0),
+          `Spasi Stub = ${formatCompactLength(gapMeters)}`,
+          `Celah S_gap (${(gapMeters / lambdaM).toFixed(3)} λ)`,
+          '#A855F7',
+          0.6
+        ),
+        createPointCallout(
+          new THREE.Vector3(xStub, tapY, 0.06),
+          new THREE.Vector3(-0.68, -0.26, 0.35),
+          `Tap 50Ω (H_tap) = ${formatCompactLength(tapMeters)}`,
+          `Dari dasar Shorting Bar (${(tapMeters / lambdaM).toFixed(3)} λ)`,
+          '#FF3366',
+          0.62
+        )
+      );
+      break;
+    }
+
+    case 'fiberglass': {
+      isOmnidirectional = true;
+      const nSec = Math.max(2, Math.min(12, Math.round(params.collinearSectionCount || 4)));
+      const radomeMeters = calc.cutSheet[0]?.valueMeters || 2.2 * lambdaM;
+      const secMeters = calc.cutSheet[1]?.valueMeters || 0.465 * lambdaM;
+      const coilHeightMeters = calc.cutSheet[2]?.valueMeters || 0.085 * lambdaM;
+      const baseMeters = calc.cutSheet[3]?.valueMeters || 0.238 * lambdaM;
+
+      const totalSceneH = 3.65;
+      const yBottom = -1.65;
+      const ferruleH = 0.42;
+      const radomeSceneH = totalSceneH - ferruleH;
+      const yFerruleTop = yBottom + ferruleH;
+      const yRadomeTop = yBottom + totalSceneH;
+
+      feedPoint = new THREE.Vector3(0, yFerruleTop + 0.15, 0);
+
+      // 1. Chromed Brass Base Mounting Ferrule & N-Female Connector
+      const ferruleGeo = new THREE.CylinderGeometry(0.115, 0.12, ferruleH, 28);
+      const ferruleMesh = new THREE.Mesh(ferruleGeo, mats.aluminum);
+      ferruleMesh.position.set(0, yBottom + ferruleH / 2, 0);
+      meshGroup.add(ferruleMesh);
+
+      const nConnMesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.065, 0.065, 0.14, 20),
+        mats.brightBrass
+      );
+      nConnMesh.position.set(0, yBottom - 0.07, 0);
+      meshGroup.add(nConnMesh);
+
+      // U-Bolt Mast Brackets & Offset Support Mast Pipe
+      for (const clampY of [yBottom + 0.12, yBottom + 0.3]) {
+        const bracket = new THREE.Mesh(
+          new THREE.BoxGeometry(0.32, 0.055, 0.18),
+          mats.darkAnodized
+        );
+        bracket.position.set(-0.12, clampY, 0);
+        meshGroup.add(bracket);
+      }
+      const sideMast = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055, 0.055, 1.35, 18),
+        mats.darkAnodized
+      );
+      sideMast.position.set(-0.24, yBottom - 0.18, 0);
+      meshGroup.add(sideMast);
+
+      // 2. Semi-Transparent Fiberglass Radome Tube (X-Ray Cutaway so internal phased array is clearly visible!)
+      const radomeOuterR = 0.105;
+      const radomeMat = new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color('#E2E8F0'),
+        metalness: 0.05,
+        roughness: 0.18,
+        transmission: 0.55,
+        transparent: true,
+        opacity: 0.34,
+        side: THREE.DoubleSide,
+      });
+      const radomeGeo = new THREE.CylinderGeometry(
+        radomeOuterR * 0.88,
+        radomeOuterR,
+        radomeSceneH,
+        32,
+        1,
+        true
+      );
+      const radomeMesh = new THREE.Mesh(radomeGeo, radomeMat);
+      radomeMesh.position.set(0, yFerruleTop + radomeSceneH / 2, 0);
+      meshGroup.add(radomeMesh);
+
+      // Aerodynamic Top Weather Cap
+      const topCapGeo = new THREE.SphereGeometry(radomeOuterR * 0.9, 24, 16);
+      const topCapMesh = new THREE.Mesh(topCapGeo, mats.insulatorDelrin);
+      topCapMesh.position.set(0, yRadomeTop, 0);
+      meshGroup.add(topCapMesh);
+
+      // 3. Internal Stacked Collinear Copper Radiator Sections + Helical Phasing Coils
+      const usableInnerH = radomeSceneH - 0.16;
+      const baseInnerH = usableInnerH * 0.12;
+      const unitSpanH = (usableInnerH - baseInnerH) / nSec;
+      const secInnerH = unitSpanH * 0.74;
+      const coilInnerH = unitSpanH * 0.26;
+
+      // Bottom λ/4 Feed Rod
+      const baseRod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.026, 0.026, baseInnerH, 16),
+        mats.copper
+      );
+      baseRod.position.set(0, yFerruleTop + baseInnerH / 2, 0);
+      meshGroup.add(baseRod);
+
+      const feedGlowRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.075, 0.016, 12, 24),
+        mats.drivenGlow
+      );
+      feedGlowRing.rotation.x = Math.PI / 2;
+      feedGlowRing.position.set(0, yFerruleTop + 0.05, 0);
+      meshGroup.add(feedGlowRing);
+
+      let cursorY = yFerruleTop + baseInnerH;
+
+      for (let i = 0; i < nSec; i++) {
+        // Helical λ/4 Phasing Coil between sections
+        const coilStartY = cursorY;
+        const coilEndY = cursorY + coilInnerH;
+        const coilPoints: THREE.Vector3[] = [];
+        const coilTurns = 4.5;
+        const coilSamples = 36;
+        for (let s = 0; s <= coilSamples; s++) {
+          const t = s / coilSamples;
+          const angle = t * coilTurns * Math.PI * 2;
+          coilPoints.push(
+            new THREE.Vector3(
+              Math.cos(angle) * 0.048,
+              coilStartY + t * coilInnerH,
+              Math.sin(angle) * 0.048
+            )
+          );
+        }
+        const coilCurve = new THREE.CatmullRomCurve3(coilPoints);
+        const coilMesh = new THREE.Mesh(
+          new THREE.TubeGeometry(coilCurve, 36, 0.011, 8, false),
+          mats.brightBrass
+        );
+        meshGroup.add(coilMesh);
+
+        // Internal Delrin coil form/insulator
+        const coilForm = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.022, 0.022, coilInnerH * 0.9, 12),
+          mats.insulatorDelrin
+        );
+        coilForm.position.set(0, coilStartY + coilInnerH / 2, 0);
+        meshGroup.add(coilForm);
+
+        // Half-wave (λ/2) Collinear Copper Section Rod
+        const secStartY = coilEndY;
+        const secEndY = secStartY + secInnerH;
+        const secMidY = (secStartY + secEndY) / 2;
+
+        const secRod = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.028, 0.028, secInnerH, 18),
+          mats.copper
+        );
+        secRod.position.set(0, secMidY, 0);
+        meshGroup.add(secRod);
+
+        // Glowing phase ring on each collinear section
+        const secRing = new THREE.Mesh(
+          new THREE.TorusGeometry(0.062, 0.01, 10, 24),
+          mats.drivenGlow
+        );
+        secRing.rotation.x = Math.PI / 2;
+        secRing.position.set(0, secMidY, 0);
+        meshGroup.add(secRing);
+
+        boomNodes.push({
+          position: new THREE.Vector3(0, secMidY, 0),
+          width: secInnerH,
+          phaseDelay: i * 0.08, // All collinear sections radiate in phase!
+          role: i === 0 ? 'driven' : 'director',
+        });
+
+        // Show per-section callouts (for first 3 sections and top section if nSec > 4)
+        if (nSec <= 5 || i < 2 || i === nSec - 1) {
+          const sideSign = i % 2 === 0 ? 1 : -1;
+          dimensionsGroup.add(
+            createPointCallout(
+              new THREE.Vector3(sideSign * 0.03, secMidY, 0),
+              new THREE.Vector3(sideSign * 0.62, 0, 0),
+              `Seksi S${i + 1}: ${formatCompactLength(secMeters)}`,
+              `0.465 λ Radiator • Se-Fase #${i + 1}`,
+              '#10B981',
+              0.56
+            )
+          );
+        }
+
+        if (i === 0) {
+          dimensionsGroup.add(
+            createDimensionCallout(
+              new THREE.Vector3(0, coilStartY, 0),
+              new THREE.Vector3(0, coilEndY, 0),
+              new THREE.Vector3(-0.68, 0, 0),
+              `Phasing Coil = ${formatCompactLength(coilHeightMeters)}`,
+              `Pembalik Fase λ/4 (${nSec}× Kumparan)`,
+              '#FFB300',
+              0.58
+            )
+          );
+        }
+
+        cursorY = secEndY;
+      }
+
+      // Total Fiberglass Radome Height Callout & Base Feed Callout
+      dimensionsGroup.add(
+        createDimensionCallout(
+          new THREE.Vector3(0, yBottom, 0),
+          new THREE.Vector3(0, yRadomeTop, 0),
+          new THREE.Vector3(0.95, 0, 0),
+          `Total Radome = ${formatCompactLength(radomeMeters)}`,
+          `${nSec} Seksi Collinear (${(radomeMeters / lambdaM).toFixed(2)} λ)`,
+          '#00E5FF',
+          0.66
+        ),
+        createPointCallout(
+          new THREE.Vector3(0, yBottom + ferruleH * 0.5, 0.12),
+          new THREE.Vector3(-0.68, -0.22, 0.35),
+          `Base Feed λ/4 = ${formatCompactLength(baseMeters)}`,
+          `Ferrule Logam & Konektor N-Female 50Ω`,
+          '#FF3366',
+          0.6
+        )
+      );
+      break;
+    }
+
     case 'yagi': {
       isOmnidirectional = false;
       const N = Math.max(3, Math.min(14, Math.round(params.yagiElementCount || 6)));

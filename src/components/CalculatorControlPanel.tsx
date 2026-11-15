@@ -220,6 +220,64 @@ export const CalculatorControlPanel: React.FC<CalculatorControlPanelProps> = ({
                   </div>
                 )}
 
+                {params.antennaType === 'jpole' && (
+                  <div className="flex flex-col gap-2 pt-3.5 border-t border-white/8">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#CBD5E1]">
+                        {lang === 'id' ? 'Spasi Celah J-Stub' : 'J-Stub Gap Spacing'}
+                      </span>
+                      <span className="font-mono-num font-bold text-[#00E5FF]">
+                        {params.jpoleStubSpacingLambda.toFixed(3)} λ (
+                        {formatCompactLength(
+                          params.jpoleStubSpacingLambda * calc.wavelengthMeters
+                        )}
+                        )
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0.015}
+                      max={0.055}
+                      step={0.002}
+                      value={params.jpoleStubSpacingLambda}
+                      onChange={(e) =>
+                        onUpdateParams({
+                          jpoleStubSpacingLambda: parseFloat(e.target.value),
+                        })
+                      }
+                      className="w-full rf-slider"
+                    />
+                  </div>
+                )}
+
+                {params.antennaType === 'fiberglass' && (
+                  <div className="flex flex-col gap-2 pt-3.5 border-t border-white/8">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[#CBD5E1]">
+                        {lang === 'id'
+                          ? 'Jumlah Seksi Collinear (λ/2)'
+                          : 'Collinear Sections (λ/2)'}
+                      </span>
+                      <span className="font-mono-num font-bold text-[#00E5FF]">
+                        {params.collinearSectionCount}× (+{calc.gainDbi.toFixed(1)} dBi)
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={2}
+                      max={12}
+                      step={1}
+                      value={params.collinearSectionCount}
+                      onChange={(e) =>
+                        onUpdateParams({
+                          collinearSectionCount: parseInt(e.target.value, 10),
+                        })
+                      }
+                      className="w-full rf-slider"
+                    />
+                  </div>
+                )}
+
                 {params.antennaType === 'dish' && (
                   <div className="flex flex-col gap-3.5 pt-3.5 border-t border-white/8">
                     <div className="flex flex-col gap-1.5">

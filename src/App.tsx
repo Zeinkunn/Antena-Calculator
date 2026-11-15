@@ -32,6 +32,10 @@ export function App() {
     // Ground Plane defaults
     gpRadialAngleDeg: 45,
 
+    // J-Pole & Fiberglass Collinear defaults
+    jpoleStubSpacingLambda: 0.03,
+    collinearSectionCount: 4,
+
     // Parabolic Dish defaults
     dishDiameterLambda: 6.5,
     dishFdRatio: 0.4,

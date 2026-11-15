@@ -163,6 +163,69 @@ export const ANTENNA_CATALOG: Record<AntennaType, AntennaCatalogEntry> = {
     ],
   },
 
+  jpole: {
+    type: 'jpole',
+    name: {
+      id: 'J-Pole Antenna (λ/2 End-Fed + λ/4 Stub)',
+      en: 'J-Pole Antenna (λ/2 End-Fed + λ/4 Stub)',
+    },
+    shortName: { id: 'J-Pole λ/2', en: 'J-Pole λ/2' },
+    badge: '2.8 dBi',
+    category: { id: 'Omnidirectional End-Fed', en: 'Omnidirectional End-Fed' },
+    typicalGainRange: '2.5 – 3.2 dBi',
+    summary: {
+      id: 'Antena vertikal berbentuk huruf "J" tanpa radial yang mencatu elemen λ/2 dari ujung bawah menggunakan saluran transmisi paralel λ/4 (J-Stub) untuk penyesuaian impedansi tepat 50 Ω.',
+      en: 'Radials-free vertical J-shaped antenna that end-feeds a λ/2 radiator via a parallel λ/4 matching stub section to achieve an exact 50 Ω coaxial match.',
+    },
+    howItWorks: {
+      id: 'Ujung bawah radiator setengah gelombang (λ/2) memiliki impedansi sangat tinggi (~2500 Ω), sedangkan bagian dasar stub hubungan pendek (shorting bar) memiliki impedansi 0 Ω. Dengan menggeser titik tap koaksial sekitar ~0.034λ di atas dasar stub λ/4, diperoleh titik impedansi presisi 50 Ω tanpa memerlukan elemen radial.',
+      en: 'The bottom end of a half-wave (λ/2) radiator exhibits high impedance (~2500 Ω), while the shorted bottom of the λ/4 stub is 0 Ω. Sliding the feed tap ~0.034λ above the shorting bar locates the exact 50 Ω point with zero ground radials required.',
+    },
+    applications: [
+      { id: 'Base station VHF/UHF Radio Amatir (2m / 70cm) & Repeater darurat', en: 'VHF/UHF Amateur Radio base stations (2m / 70cm) & emergency repeaters' },
+      { id: 'Gateway LoRa / Meshtastic & APRS dari pipa tembaga utuh', en: 'Copper-pipe LoRa / Meshtastic gateways & APRS digipeaters' },
+    ],
+    pros: [
+      { id: 'Tanpa elemen radial bawah sehingga sangat ringkas dipasang di tiang/balkon', en: 'No ground plane radials required — slim vertical profile for masts or balconies' },
+      { id: 'Bagian bawah dapat langsung dibaut dan di-ground-kan ke tiang logam sebagai penangkal petir DC', en: 'Bottom shorting bar is at DC ground and bolts directly to metallic masts for lightning protection' },
+    ],
+    cons: [
+      { id: 'Wajib diberi Choke Balun (RF Ferrite / Coax Coil) pada titik tap untuk mencegah arus liar di kulit koaksial', en: 'Requires an RF Choke Balun at the feed tap to prevent common-mode currents on the coax shield' },
+    ],
+  },
+
+  fiberglass: {
+    type: 'fiberglass',
+    name: {
+      id: 'Fiberglass Omni Collinear Array (Base Station)',
+      en: 'Fiberglass Omni Collinear Array (Base Station)',
+    },
+    shortName: { id: 'Fiberglass Omni', en: 'Fiberglass Omni' },
+    badge: '6–12 dBi',
+    category: { id: 'Phased Collinear Array', en: 'Phased Collinear Array' },
+    typicalGainRange: '5.5 – 12.0 dBi',
+    summary: {
+      id: 'Antena stasiun induk luar ruang berselubung tabung Fiberglass tahan cuaca yang berisi susunan bertingkat elemen λ/2 dengan kumparan pembalik fase (Phasing Coil λ/4) untuk pancaran 360° jarak jauh.',
+      en: 'Weatherproof Fiberglass Radome base antenna housing vertically stacked λ/2 collinear radiator sections separated by λ/4 phasing coils for high-gain 360° horizon coverage.',
+    },
+    howItWorks: {
+      id: 'Di dalam selongsong pipa Fiberglass (FRP), beberapa elemen dipol vertikal λ/2 disusun segaris (collinear) ke atas. Karena arus bolak-balik akan berbalik fase setiap setengah gelombang, dipasang kumparan pembalik fase (λ/4 Phasing Stub/Coil) di setiap sambungan agar seluruh elemen memancar sefase dan memipihkan kubah sinyal ke arah cakrawala.',
+      en: 'Inside the protective FRP fiberglass tube, multiple vertical λ/2 brass/copper radiators are stacked end-to-end. Helical λ/4 phasing coils between sections invert the alternating phase so all sections radiate in phase, compressing the vertical beam toward the horizon.',
+    },
+    applications: [
+      { id: 'Gateway Utama LoRaWAN / Helium / Meshtastic 433, 868, & 915 MHz', en: 'Primary outdoor LoRaWAN / Helium / Meshtastic 433, 868, & 915 MHz gateways' },
+      { id: 'Penerima Radar Pesawat ADS-B 1090 MHz & AIS Kapal Laut', en: '1090 MHz ADS-B aircraft tracking & Marine VHF AIS base stations' },
+      { id: 'Base Station Repeater Komersial & Wi-Fi Outdoor Omni', en: 'Commercial Repeater Base Stations & Outdoor Omni Wi-Fi Access Points' },
+    ],
+    pros: [
+      { id: 'Gain omnidirectional 360° paling tinggi dengan ketahanan cuaca ekstrem (UV & hujan)', en: 'Highest 360° omnidirectional gain with rugged weatherproof fiberglass protection' },
+      { id: 'Semakin banyak seksi collinear di dalamnya, jangkauan horizontal semakin jauh', en: 'Stacking more internal collinear sections directly boosts horizontal link range' },
+    ],
+    cons: [
+      { id: 'Pada jumlah seksi tinggi (>8 seksi), berkas vertikal sangat tipis sehingga tidak cocok untuk posisi di puncak bukit curam', en: 'Very high section counts (>8) create a razor-thin vertical beam that can overshoot nearby valleys' },
+    ],
+  },
+
   yagi: {
     type: 'yagi',
     name: {
