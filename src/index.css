@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #080C14;
+    color: #F1F5F9;
+  }
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom sleek scrollbars for instrument panels */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080C14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Custom Range Slider for RF Instrumentation */
+input[type='range'].rf-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type='range'].rf-slider::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1E293B 0%, #334155 100%);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+input[type='range'].rf-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #00E5FF;
+  border: 2px solid #080C14;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.75);
+  margin-top: -5px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+input[type='range'].rf-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+  box-shadow: 0 0 14px rgba(0, 229, 255, 1);
+}
+
+input[type='range'].rf-slider-amber::-webkit-slider-thumb {
+  background: #FFB300;
+  box-shadow: 0 0 10px rgba(255, 179, 0, 0.75);
+}
